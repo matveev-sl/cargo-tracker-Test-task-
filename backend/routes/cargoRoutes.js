@@ -1,11 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Cargo = require('../models/Cargo');
-
-// let cargos = [
-//   { id: 'CARGO001', name: 'Строительные материалы', status: 'В пути', origin: 'Москва', destination: 'Казань', departureDate: '2024-11-24' },
-//   { id: 'CARGO002', name: 'Хрупкий груз', status: 'Ожидает отправки', origin: 'Санкт-Петербург', destination: 'Екатеринбург', departureDate: '2024-11-26' }
-// ];
+const {Cargo, addCargo} = require('../models/Cargo');
 
 router.get('/', async (req, res) => {
     try {
@@ -29,16 +24,15 @@ router.get('/:id', async (req, res) => {
   
 
 // Добавление нового груза
-router.post('/', async (req, res) => {
-    try {
-      const { name, status, origin, destination, departureDate } = req.body; // Получаем данные из тела запроса
-      const newCargo = new Cargo({ name, status, origin, destination, departureDate }); // Создаем новый объект
-      await newCargo.save(); // Сохраняем в MongoDB
-      res.status(201).json(newCargo); // Отправляем обратно сохраненный груз
-    } catch (err) {
-      res.status(400).json({ message: err.message });
-    }
-  });
+router.post("/", async (req, res) => {
+  try {
+    const newCargo = await addCargo(req.body); // Используем addCargo
+    res.status(201).json(newCargo);
+  } catch (err) {
+    console.error("Ошибка при создании груза:", err);
+    res.status(400).json({ message: err.message });
+  }
+});
 
 // Обновление статуса груза
 router.put('/:id/status', async (req, res) => {

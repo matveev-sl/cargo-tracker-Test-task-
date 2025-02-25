@@ -35,6 +35,7 @@
 
 <script setup lang="ts">
 import { ref, defineProps, defineEmits } from "vue";
+import axios from "axios";
 
 const props = defineProps({ cities: Array });
 const emit = defineEmits(["add-cargo"]);
@@ -49,14 +50,29 @@ const cargo = ref({
 
 
 
-const submitCargo = () => {
+const submitCargo = async () => {
   if (!cargo.value.name || !cargo.value.origin || !cargo.value.destination || !cargo.value.departureDate) {
     alert("Пожалуйста, заполните все поля!");
     return;
   }
-  emit("add-cargo", { ...cargo.value });
+  console.log("Отправляем груз:", cargo.value); // Отладка
+  try {
+    const response = await axios.post("http://localhost:5001/api/cargos", {
+      name: cargo.value.name,
+      origin: cargo.value.origin,
+      destination: cargo.value.destination,
+      departureDate: cargo.value.departureDate,
+      status: cargo.value.status,
+    });
 
-  // Очищаем форму
-  cargo.value = { name: "", origin: "", destination: "", departureDate: "", status: "Ожидает отправки" };
+    emit("add-cargo", { ...cargo.value }); // Передача данных родителю
+
+    cargo.value = { name: "", origin: "", destination: "", departureDate: "", status: "Ожидает отправки" }; // Очистка формы
+
+  } catch (error) {
+    console.error("Ошибка при добавлении груза:", error);
+    console.log("Ответ сервера:", error.response?.data); 
+    alert("Не удалось добавить груз. Попробуйте еще раз.");
+  }
 };
 </script>

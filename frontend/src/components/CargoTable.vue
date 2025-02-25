@@ -1,4 +1,3 @@
-  
 <template>
   <table class="table table-bordered">
     <thead class="thead-dark">
@@ -13,7 +12,7 @@
     </thead>
     <tbody>
       <tr v-for="cargo in cargoList" :key="cargo.id" :class="getStatusClass(cargo.status)">
-        <td>{{ cargo.id }}</td>
+        <td>{{ cargo.cargoId }}</td>
         <td>{{ cargo.name }}</td>
         <td>{{ cargo.status }}</td>
         <td>{{ cargo.origin }} → {{ cargo.destination }}</td>
@@ -29,39 +28,68 @@
     </tbody>
   </table>
 </template>
-  
-  
-  <script setup lang="ts">
-  import { defineProps, defineEmits } from "vue";
 
-  const props = defineProps({ cargoList: Array });
-  const emit = defineEmits<{
-  (event: "update-status", updatedCargo: { id: string; status: string }): void;
+<script setup lang="ts">
+import { defineProps, defineEmits, onMounted } from "vue";
+import axios from "axios";
+
+// Определяем интерфейс Cargo
+interface Cargo {
+  cargoId: string;
+  name: string;
+  status: string;
+  origin: string;
+  destination: string;
+  departureDate: string;
+}
+onMounted(() => {
+   console.log('Cargo');
+});
+
+// Ожидаем список грузов в `props`
+const props = defineProps<{ cargoList: Cargo[] }>();
+
+// Определяем событие для обновления статуса
+const emit = defineEmits<{
+  (event: "update-status", updatedCargo: Cargo): void;
 }>();
 
+// Функция для добавления классов в зависимости от статуса
+const getStatusClass = (status: string) => {
+  switch (status) {
+    case "Ожидает отправки":
+      return "table-warning";
+    case "В пути":
+      return "table-primary";
+    case "Доставлен":
+      return "table-success";
+    default:
+      return "";
+  }
+};
 
-  const getStatusClass = (status) => {
-    switch (status) {
-      case "Ожидает отправки": return "table-warning";
-      case "В пути": return "table-primary";
-      case "Доставлен": return "table-success";
-      default: return "";
-    }
-  };
+// Функция обновления статуса
+const updateStatus = async (cargo: Cargo) => {
+  const currentDate = new Date();
+  const departureDate = new Date(cargo.departureDate);
 
-  const updateStatus = (cargo: { id: string; status: string }) => {
-  const currentDate = new Date(); // Получаем текущую дату
-  const departureDate = new Date(cargo.departureDate); // Преобразуем строку даты отправления в объект Date
-
-  // Проверяем, если статус "Доставлен" и дата отправления в будущем
+  // Проверяем, если статус "Доставлен", но дата отправления в будущем
   if (cargo.status === "Доставлен" && departureDate > currentDate) {
     alert("Ошибка: Невозможно изменить статус на 'Доставлен', так как дата отправления в будущем.");
-    return; // Прерываем выполнение функции, если ошибка
+    return;
   }
 
-  // Отправляем обновленный статус через событие
-  emit("update-status", cargo);
-  };
-  </script>
+  try {
+    // Отправляем новый статус на сервер
+    await axios.put(`http://localhost:5001/api/cargos/${cargo.id}`, {
+      status: cargo.status
+    });
 
-  
+    // Если успешно — обновляем данные через emit
+    emit("update-status", cargo);
+  } catch (error) {
+    console.error("Ошибка при обновлении статуса груза:", error);
+    alert("Не удалось обновить статус груза.");
+  }
+};
+</script>
